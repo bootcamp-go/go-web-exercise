@@ -2,10 +2,9 @@ package main
 
 import (
 	"app/cmd/handlers"
-	"net/http"
+	"log"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -13,23 +12,35 @@ func main() {
 	// ...
 
 	// dependencies
-	db := make(map[int]*handlers.Product)
-	ct := handlers.NewControllerProducts(db)
+	db, err := handlers.LoaderProducts("./docs/db/json/products.json")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	ct := handlers.NewControllerProducts(db, len(db))
 
 	// server
-	rt := chi.NewRouter()
+	rt := gin.New()
 	// -> middleware
-	rt.Use(middleware.Logger)
-	rt.Use(middleware.Recoverer)
+	rt.Use(gin.Recovery())
+	rt.Use(gin.Logger())
 	// -> routes
 	// -> -> products group
-	rt.Route("/products", func(rt chi.Router) {
-		// create
-		rt.Post("/", ct.Create())
-	})
+	pr := rt.Group("/products")
+	{
+		// get all products
+		pr.GET("/", ct.Get())
+		// get product by id
+		pr.GET("/:id", ct.GetByID())
+		// search product by id (query params)
+		pr.GET("/search", ct.Search())
+		// create product
+		pr.POST("/", ct.Create())
+	}
 
 	// -> run
-	if err := http.ListenAndServe(":8080", rt); err != nil {
-		panic(err)
+	if err := rt.Run(":8080"); err != nil {
+		log.Println(err)
+		return
 	}
 }
