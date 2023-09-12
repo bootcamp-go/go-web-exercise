@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
 // NewControllerProducts returns a new ControllerProducts
@@ -33,8 +34,8 @@ type ResponseBodyProductGet struct {
 	Message string		   `json:"message"`
 	Data    []*ProductJSON `json:"data"`
 }
-func (c *ControllerProducts) Get() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+func (c *ControllerProducts) Get() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// request
 		// ...
 
@@ -48,7 +49,8 @@ func (c *ControllerProducts) Get() gin.HandlerFunc {
 			body.Data = append(body.Data, &ProductJSON{Id: k, Name: v.Name, Quantity: v.Quantity, CodeValue: v.CodeValue, IsPublished: v.IsPublished, Expiration: v.Expiration.Format("2006-01-02"), Price: v.Price})
 		}
 
-		ctx.JSON(code, body)
+		w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(body)
 	}
 }
 
@@ -57,16 +59,17 @@ type ResponseBodyGetByID struct {
 	Message string		 `json:"message"`
 	Data    *ProductJSON `json:"data"`
 }
-func (c *ControllerProducts) GetByID() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+func (c *ControllerProducts) GetByID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// request
 		// -> id
-		id, err := strconv.Atoi(ctx.Param("id"))
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			code := http.StatusBadRequest
 			body := ResponseBodyGetByID{Message: "invalid id", Data: nil}
 
-			ctx.JSON(code, body)
+			w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(body)
 			return
 		}
 
@@ -77,7 +80,8 @@ func (c *ControllerProducts) GetByID() gin.HandlerFunc {
 			code := http.StatusNotFound
 			body := ResponseBodyGetByID{Message: "product not found", Data: nil}
 
-			ctx.JSON(code, body)
+			w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(body)
 			return
 		}
 
@@ -85,7 +89,8 @@ func (c *ControllerProducts) GetByID() gin.HandlerFunc {
 		code := http.StatusOK
 		body := ResponseBodyGetByID{Message: "product", Data: &ProductJSON{Id: id, Name: pr.Name, Quantity: pr.Quantity, CodeValue: pr.CodeValue, IsPublished: pr.IsPublished, Expiration: pr.Expiration.Format("2006-01-02"), Price: pr.Price}}
 
-		ctx.JSON(code, body)
+		w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(body)
 	}
 }
 
@@ -94,10 +99,10 @@ type ResponseBodySearch struct {
 	Message string		   `json:"message"`
 	Data    []*ProductJSON `json:"data"`
 }
-func (c *ControllerProducts) Search() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+func (c *ControllerProducts) Search() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// request
-		id, _ := strconv.Atoi(ctx.Query("id"))
+		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 
 		// process
 		filtered := make(map[int]*Product)
@@ -120,7 +125,8 @@ func (c *ControllerProducts) Search() gin.HandlerFunc {
 			body.Data = append(body.Data, &ProductJSON{Id: k, Name: v.Name, Quantity: v.Quantity, CodeValue: v.CodeValue, IsPublished: v.IsPublished, Expiration: v.Expiration.Format("2006-01-02"), Price: v.Price})
 		}
 
-		ctx.JSON(code, body)
+		w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(body)
 	}
 }
 
@@ -137,15 +143,16 @@ type ResponseBodyProductCreate struct {
 	Message string		 `json:"message"`
 	Data    *ProductJSON `json:"data"`
 }
-func (c *ControllerProducts) Create() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+func (c *ControllerProducts) Create() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// request
 		var reqBody RequestBodyProductCreate
-		if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			code := http.StatusBadRequest
 			body := ResponseBodyProductCreate{Message: "invalid request body", Data: nil}
 
-			ctx.JSON(code, body)
+			w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(body)
 			return
 		}
 
@@ -156,7 +163,8 @@ func (c *ControllerProducts) Create() gin.HandlerFunc {
 			code := http.StatusBadRequest
 			body := ResponseBodyProductCreate{Message: "invalid date format. Must be yyyy-mm-dd", Data: nil}
 
-			ctx.JSON(code, body)
+			w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(body)
 			return
 		}
 		pr := &Product{
@@ -172,7 +180,8 @@ func (c *ControllerProducts) Create() gin.HandlerFunc {
 			code := http.StatusConflict
 			body := ResponseBodyProductCreate{Message: "invalid product", Data: nil}
 
-			ctx.JSON(code, body)
+			w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(body)
 			return
 		}
 		// -> save
@@ -186,6 +195,7 @@ func (c *ControllerProducts) Create() gin.HandlerFunc {
 			Data:    &ProductJSON{Id: c.lastId, Name: pr.Name, Quantity: pr.Quantity, CodeValue: pr.CodeValue, IsPublished: pr.IsPublished, Expiration: pr.Expiration.Format("2006-01-02"), Price: pr.Price},
 		}
 
-		ctx.JSON(code, body)
+		w.WriteHeader(code); w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(body)
 	}
 }

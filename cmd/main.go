@@ -3,8 +3,10 @@ package main
 import (
 	"app/cmd/handlers"
 	"log"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -20,26 +22,26 @@ func main() {
 	ct := handlers.NewControllerProducts(db, len(db))
 
 	// server
-	rt := gin.New()
+	rt := chi.NewRouter()
 	// -> middleware
-	rt.Use(gin.Recovery())
-	rt.Use(gin.Logger())
+	rt.Use(middleware.Recoverer)
+	rt.Use(middleware.Logger)
 	// -> routes
 	// -> -> products group
-	pr := rt.Group("/products")
-	{
+	rt.Route("/products", func(rt chi.Router) {
 		// get all products
-		pr.GET("/", ct.Get())
+		rt.Get("/", ct.Get())
 		// get product by id
-		pr.GET("/:id", ct.GetByID())
-		// search product by id (query params)
-		pr.GET("/search", ct.Search())
+		rt.Get("/{id}", ct.GetByID())
+		// search products
+		rt.Get("/search", ct.Search())
 		// create product
-		pr.POST("/", ct.Create())
-	}
+		rt.Post("/", ct.Create())
+	})
+		
 
 	// -> run
-	if err := rt.Run(":8080"); err != nil {
+	if err := http.ListenAndServe(":8080", rt); err != nil {
 		log.Println(err)
 		return
 	}
