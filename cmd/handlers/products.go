@@ -43,9 +43,9 @@ func (c *ControllerProducts) Get() gin.HandlerFunc {
 
 		// response
 		code := http.StatusOK
-		body := ResponseBodyProductGet{Message: "products", Data: make([]*ProductJSON, len(c.storage))}
+		body := ResponseBodyProductGet{Message: "products", Data: make([]*ProductJSON, 0, len(c.storage))}
 		for k, v := range c.storage {
-			body.Data[k] = &ProductJSON{Id: k, Name: v.Name, Quantity: v.Quantity, CodeValue: v.CodeValue, IsPublished: v.IsPublished, Expiration: v.Expiration.Format("2006-01-02"), Price: v.Price}
+			body.Data = append(body.Data, &ProductJSON{Id: k, Name: v.Name, Quantity: v.Quantity, CodeValue: v.CodeValue, IsPublished: v.IsPublished, Expiration: v.Expiration.Format("2006-01-02"), Price: v.Price})
 		}
 
 		ctx.JSON(code, body)
@@ -115,9 +115,9 @@ func (c *ControllerProducts) Search() gin.HandlerFunc {
 
 		// response
 		code := http.StatusOK
-		body := ResponseBodySearch{Message: "products", Data: make([]*ProductJSON, len(filtered))}
+		body := ResponseBodySearch{Message: "products", Data: make([]*ProductJSON, 0, len(filtered))}
 		for k, v := range filtered {
-			body.Data[k] = &ProductJSON{Id: k, Name: v.Name, Quantity: v.Quantity, CodeValue: v.CodeValue, IsPublished: v.IsPublished, Expiration: v.Expiration.Format("2006-01-02"), Price: v.Price}
+			body.Data = append(body.Data, &ProductJSON{Id: k, Name: v.Name, Quantity: v.Quantity, CodeValue: v.CodeValue, IsPublished: v.IsPublished, Expiration: v.Expiration.Format("2006-01-02"), Price: v.Price})
 		}
 
 		ctx.JSON(code, body)

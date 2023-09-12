@@ -85,13 +85,14 @@ func LoaderProducts(filePath string) (p map[int]*Product, err error) {
 	defer f.Close()
 
 	// read file: decode json
-	var products map[int]*ProductAttributesJSON
+	products := make(map[int]*ProductAttributesJSON)
 	err = json.NewDecoder(f).Decode(&products)
 	if err != nil {
 		return
 	}
 
 	// serialize
+	p = make(map[int]*Product)
 	for k, v := range products {
 		p[k] = &Product{
 			Name:        v.Name,
