@@ -114,11 +114,18 @@ type ResponseBodySearch struct {
 func (h *HandlerProducts) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// request
-		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+		id, err := strconv.Atoi(r.URL.Query().Get("id"))
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodySearch{Message: "invalid id", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
 
 		// process
 		// -> get product with query
-		query := &storage.Query{Id: id}
+		query := storage.Query{Id: id}
 		pr, err := h.st.Search(query)
 		if err != nil {
 			code := http.StatusInternalServerError

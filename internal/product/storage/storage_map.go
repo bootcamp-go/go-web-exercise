@@ -51,26 +51,30 @@ func (s *StorageProductMap) GetByID(id int) (p *Product, err error) {
 	return
 }
 
-// Search is a method that returns a product by query
-func (s *StorageProductMap) Search(query *Query) (p []*Product, err error) {
-	p = make([]*Product, 0)
+// Search is a method that returns filtered products
+// valid if at least one field is set
+func (s *StorageProductMap) Search(query Query) (p []*Product, err error) {
+	valid := query.Id > 0 || query.Name != ""
+	
+	// filter
 	for k, v := range s.db {
-		// filter: check if query is set
-		if query != nil {
-			// invalid cases
-			if query.Id != 0 && query.Id != k {
+		// check if query is valid
+		if valid {
+			// check if id is valid
+			if query.Id > 0 && k != query.Id {
 				continue
 			}
-			if query.Name != "" && query.Name != v.Name {
+			// check if name is valid
+			if query.Name != "" && v.Name != query.Name {
 				continue
 			}
 		}
 
-		// add: by default add the product and serialize
+		// serialization
 		p = append(p, &Product{k, v.Name, v.Quantity, v.CodeValue, v.IsPublished, v.Expiration, v.Price})
 	}
 
-	return p, nil
+	return
 }
 
 // Create is a method that creates a product

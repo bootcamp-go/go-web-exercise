@@ -41,7 +41,7 @@ type StorageProduct interface {
 	GetByID(id int) (p *Product, err error)
 
 	// Search is a method that returns a product by query
-	Search(query *Query) (p []*Product, err error)
+	Search(query Query) (p []*Product, err error)
 
 	// Create is a method that creates a product
 	Create(p *Product) (err error)

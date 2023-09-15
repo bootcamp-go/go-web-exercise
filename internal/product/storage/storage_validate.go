@@ -47,7 +47,7 @@ func (s *StorageProductValidate) GetByID(id int) (p *Product, err error) {
 }
 
 // Search is a method that returns a product by query
-func (s *StorageProductValidate) Search(query *Query) (p []*Product, err error) {
+func (s *StorageProductValidate) Search(query Query) (p []*Product, err error) {
 	p, err = s.st.Search(query)
 	return
 }
