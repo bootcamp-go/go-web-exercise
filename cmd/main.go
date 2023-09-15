@@ -2,6 +2,8 @@ package main
 
 import (
 	"app/cmd/handlers"
+	"app/internal/product/storage"
+	"app/internal/product/storage/loader"
 	"log"
 	"net/http"
 
@@ -14,12 +16,15 @@ func main() {
 	// ...
 
 	// dependencies
-	db, err := handlers.LoaderProducts("./docs/db/json/products.json")
+	ld := loader.NewLoaderJSON("./docs/db/json/products.json")
+	db, err := ld.Load()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	ct := handlers.NewControllerProducts(db, len(db))
+	st := storage.NewStorageProductMap(db.Db, db.LastId)
+	vl := storage.NewStorageProductValidate(storage.ConfigStorageProductValidate{St: st})
+	ct := handlers.NewHandlerProducts(vl)
 
 	// server
 	rt := chi.NewRouter()
