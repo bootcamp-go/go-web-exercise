@@ -48,4 +48,10 @@ type StorageProduct interface {
 
 	// Update is a method that updates a product
 	Update(p *Product) (err error)
+
+	// UpdateOrCreate is a method that updates or creates a product
+	UpdateOrCreate(p *Product) (err error)
+
+	// Delete is a method that deletes a product by id
+	Delete(id int) (err error)
 }

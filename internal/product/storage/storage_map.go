@@ -104,5 +104,40 @@ func (s *StorageProductMap) Update(p *Product) (err error) {
 	// update
 	s.db[p.Id] = product
 	
-	return nil
+	return
+}
+
+// UpdateOrCreate is a method that updates or creates a product
+func (s *StorageProductMap) UpdateOrCreate(p *Product) (err error) {
+	// deserialization
+	product := ProductAttributesMap{p.Name, p.Quantity, p.CodeValue, p.IsPublished, p.Expiration, p.Price}
+
+	// update or create
+	_, ok := s.db[p.Id]
+	switch ok {
+	case true:
+		// update
+		s.db[p.Id] = product
+	default:
+		// save
+		s.lastId++
+		s.db[s.lastId] = product
+	}
+	
+	return
+}
+
+// Delete is a method that deletes a product by id
+func (s *StorageProductMap) Delete(id int) (err error) {
+	// search
+	_, ok := s.db[id]
+	if !ok {
+		err = fmt.Errorf("%w: %d", ErrStorageProductNotFound, id)
+		return
+	}
+
+	// delete
+	delete(s.db, id)
+	
+	return
 }

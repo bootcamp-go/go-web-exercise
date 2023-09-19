@@ -225,3 +225,249 @@ func (h *HandlerProducts) Create() http.HandlerFunc {
 		response.JSON(w, code, body)
 	}
 }
+
+// UpdateOrCreate is a method that updates or creates a product
+type RequestBodyProductUpdateOrCreate struct {
+	Name        string  `json:"name"`
+	Quantity    int     `json:"quantity"`
+	CodeValue   string  `json:"code_value"`
+	IsPublished bool    `json:"is_published"`
+	Expiration  string  `json:"expiration"`
+	Price       float64 `json:"price"`
+}
+type ResponseBodyProductUpdateOrCreate struct {
+	Message string		 `json:"message"`
+	Data    *ProductJSON `json:"data"`
+}
+func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// request
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductUpdateOrCreate{Message: "invalid id", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		var reqBody RequestBodyProductUpdateOrCreate
+		err = request.JSON(r, &reqBody)
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductUpdateOrCreate{Message: "invalid request body", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		// process
+		// -> deserialize
+		exp, err := time.Parse("2006-01-02", reqBody.Expiration)
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductUpdateOrCreate{Message: "invalid date format. Must be yyyy-mm-dd", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+		pr := &storage.Product{
+			Id:          id,
+			Name:        reqBody.Name,
+			Quantity:    reqBody.Quantity,
+			CodeValue:   reqBody.CodeValue,
+			IsPublished: reqBody.IsPublished,
+			Expiration:  exp,
+			Price:       reqBody.Price,
+		}
+		// -> update or create
+		err = h.st.UpdateOrCreate(pr)
+		if err != nil {
+			var code int; var body ResponseBodyProductUpdateOrCreate
+			switch {
+			case errors.Is(err, storage.ErrStorageProductInvalid):
+				code = http.StatusUnprocessableEntity
+				body = ResponseBodyProductUpdateOrCreate{Message: "invalid product", Data: nil}
+			default:
+				code = http.StatusInternalServerError
+				body = ResponseBodyProductUpdateOrCreate{Message: "internal error", Data: nil}
+			}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		// response
+		code := http.StatusOK
+		body := ResponseBodyProductUpdateOrCreate{
+			Message: "product updated or created",
+			Data: &ProductJSON{										// serialization
+				Id:          pr.Id,
+				Name:        pr.Name,
+				Quantity:    pr.Quantity,
+				CodeValue:   pr.CodeValue,
+				IsPublished: pr.IsPublished,
+				Expiration:  pr.Expiration.Format("2006-01-02"),
+				Price:       pr.Price,
+			},
+		}
+
+		response.JSON(w, code, body)
+	}
+}
+
+// Update is a method that updates a product
+type RequestBodyProductUpdate struct {
+	Name        string  `json:"name"`
+	Quantity    int     `json:"quantity"`
+	CodeValue   string  `json:"code_value"`
+	IsPublished bool    `json:"is_published"`
+	Expiration  string  `json:"expiration"`
+	Price       float64 `json:"price"`
+}
+type ResponseBodyProductUpdate struct {
+	Message string		 `json:"message"`
+	Data    *ProductJSON `json:"data"`
+}
+func (h *HandlerProducts) Update() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// request
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductUpdate{Message: "invalid id", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		// process
+		// -> get searched product to update (patch)
+		p, err := h.st.GetByID(id)
+		if err != nil {
+			var code int; var body ResponseBodyProductUpdate
+			switch {
+			case errors.Is(err, storage.ErrStorageProductNotFound):
+				code = http.StatusNotFound
+				body = ResponseBodyProductUpdate{Message: "product not found", Data: nil}
+			default:
+				code = http.StatusInternalServerError
+				body = ResponseBodyProductUpdate{Message: "internal error", Data: nil}
+			}
+
+			response.JSON(w, code, body)
+			return
+		}
+		// -> serialize
+		reqBody := RequestBodyProductUpdate{
+			Name:        p.Name,
+			Quantity:    p.Quantity,
+			CodeValue:   p.CodeValue,
+			IsPublished: p.IsPublished,
+			Expiration:  p.Expiration.Format("2006-01-02"),
+			Price:       p.Price,
+		}
+		err = request.JSON(r, &reqBody)
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductUpdate{Message: "invalid request body", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+		// -> deserialize
+		exp, err := time.Parse("2006-01-02", reqBody.Expiration)
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductUpdate{Message: "invalid date format. Must be yyyy-mm-dd", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+		// -> update
+		pr := &storage.Product{
+			Id:          id,
+			Name:        reqBody.Name,
+			Quantity:    reqBody.Quantity,
+			CodeValue:   reqBody.CodeValue,
+			IsPublished: reqBody.IsPublished,
+			Expiration:  exp,
+			Price:       reqBody.Price,
+		}
+		err = h.st.Update(pr)
+		if err != nil {
+			var code int; var body ResponseBodyProductUpdate
+			switch {
+			case errors.Is(err, storage.ErrStorageProductInvalid):
+				code = http.StatusUnprocessableEntity
+				body = ResponseBodyProductUpdate{Message: "invalid product", Data: nil}
+			default:
+				code = http.StatusInternalServerError
+				body = ResponseBodyProductUpdate{Message: "internal error", Data: nil}
+			}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		// response
+		code := http.StatusOK
+		body := ResponseBodyProductUpdate{
+			Message: "product updated",
+			Data: &ProductJSON{										// serialization
+				Id:          pr.Id,
+				Name:        pr.Name,
+				Quantity:    pr.Quantity,
+				CodeValue:   pr.CodeValue,
+				IsPublished: pr.IsPublished,
+				Expiration:  pr.Expiration.Format("2006-01-02"),
+				Price:       pr.Price,
+			},
+		}
+
+		response.JSON(w, code, body)
+	}
+}
+
+// Delete is a method that deletes a product by id
+type ResponseBodyProductDelete struct {
+	Message string `json:"message"`
+	Data    any	   `json:"data"`
+}
+func (h *HandlerProducts) Delete() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// request
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			code := http.StatusBadRequest
+			body := ResponseBodyProductDelete{Message: "invalid id", Data: nil}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		// process
+		// -> delete
+		err = h.st.Delete(id)
+		if err != nil {
+			var code int; var body ResponseBodyProductDelete
+			switch {
+			case errors.Is(err, storage.ErrStorageProductNotFound):
+				code = http.StatusNotFound
+				body = ResponseBodyProductDelete{Message: "product not found", Data: nil}
+			default:
+				code = http.StatusInternalServerError
+				body = ResponseBodyProductDelete{Message: "internal error", Data: nil}
+			}
+
+			response.JSON(w, code, body)
+			return
+		}
+
+		// response
+		code := http.StatusNoContent
+		body := any(nil)
+
+		response.JSON(w, code, body)
+	}
+}

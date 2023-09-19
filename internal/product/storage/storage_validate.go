@@ -79,7 +79,36 @@ func (s *StorageProductValidate) Update(p *Product) (err error) {
 		return
 	}
 
-	// save
+	// update
 	err = s.st.Update(p)
+	return
+}
+
+// UpdateOrCreate is a method that updates or creates a product with validations
+func (s *StorageProductValidate) UpdateOrCreate(p *Product) (err error) {
+	// validate
+	pv := validator.ProductAttributesValidator{
+		Name:        p.Name,
+		Quantity:    p.Quantity,
+		CodeValue:   p.CodeValue,
+		IsPublished: p.IsPublished,
+		Expiration:  p.Expiration,
+		Price:       p.Price,
+	}
+	err = s.vl.Validate(&pv)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", ErrStorageProductInvalid, err.Error())
+		return
+	}
+
+	// update or create
+	err = s.st.UpdateOrCreate(p)
+	return
+}
+
+// Delete is a method that deletes a product by id
+func (s *StorageProductValidate) Delete(id int) (err error) {
+	// delete
+	err = s.st.Delete(id)
 	return
 }
