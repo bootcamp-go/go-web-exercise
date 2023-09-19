@@ -4,6 +4,7 @@ import (
 	"app/cmd/handlers"
 	"app/internal/product/storage"
 	"app/internal/product/storage/loader"
+	"app/internal/product/validator"
 	"log"
 	"net/http"
 
@@ -13,8 +14,8 @@ import (
 
 func main() {
 	// env
-	// ...
 
+	
 	// dependencies
 	ld := loader.NewLoaderJSON("./docs/db/json/products.json")
 	db, err := ld.Load()
@@ -23,8 +24,9 @@ func main() {
 		return
 	}
 	st := storage.NewStorageProductMap(db.Db, db.LastId)
-	vl := storage.NewStorageProductValidate(storage.ConfigStorageProductValidate{St: st})
-	ct := handlers.NewHandlerProducts(vl)
+	vl := validator.NewValidatorProductDefault("")
+	stVl := storage.NewStorageProductValidate(st, vl)
+	ct := handlers.NewHandlerProducts(stVl)
 
 	// server
 	rt := chi.NewRouter()

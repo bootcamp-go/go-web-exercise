@@ -17,12 +17,12 @@ type ProductAttributesMap struct {
 
 // StorageProductMap is a struct that contains the information of a storage product
 type StorageProductMap struct {
-	db	   map[int]*ProductAttributesMap
+	db	   map[int]ProductAttributesMap
 	lastId int
 }
 
 // NewStorageProductMap is a method that creates a new storage product
-func NewStorageProductMap(db map[int]*ProductAttributesMap, lastId int) *StorageProductMap {
+func NewStorageProductMap(db map[int]ProductAttributesMap, lastId int) *StorageProductMap {
 	return &StorageProductMap{db, lastId}
 }
 
@@ -80,11 +80,29 @@ func (s *StorageProductMap) Search(query Query) (p []*Product, err error) {
 // Create is a method that creates a product
 func (s *StorageProductMap) Create(p *Product) (err error) {
 	// deserialization
-	product := &ProductAttributesMap{p.Name, p.Quantity, p.CodeValue, p.IsPublished, p.Expiration, p.Price}
+	product := ProductAttributesMap{p.Name, p.Quantity, p.CodeValue, p.IsPublished, p.Expiration, p.Price}
 
 	// save
 	s.lastId++
 	s.db[s.lastId] = product
+	
+	return nil
+}
+
+// Update is a method that updates a product
+func (s *StorageProductMap) Update(p *Product) (err error) {
+	// deserialization
+	product := ProductAttributesMap{p.Name, p.Quantity, p.CodeValue, p.IsPublished, p.Expiration, p.Price}
+
+	// search
+	_, ok := s.db[p.Id]
+	if !ok {
+		err = fmt.Errorf("%w: %d", ErrStorageProductNotFound, p.Id)
+		return
+	}
+
+	// update
+	s.db[p.Id] = product
 	
 	return nil
 }

@@ -39,7 +39,7 @@ func (l *LoaderJSON) Load() (p *ProductsDB, err error) {
 
 	// read file
 	// -> get db
-	db := make(map[int]*storage.ProductAttributesMap)
+	db := make(map[int]storage.ProductAttributesMap)
 	err = json.NewDecoder(f).Decode(&db)
 	if err != nil {
 		err = fmt.Errorf("%w: %s", ErrLoaderProductInternal, err)

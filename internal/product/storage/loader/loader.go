@@ -12,7 +12,7 @@ var (
 
 // ProductsDB is a struct that contains the information of products db
 type ProductsDB struct {
-	Db     map[int]*storage.ProductAttributesMap
+	Db     map[int]storage.ProductAttributesMap
 	LastId int
 }
 

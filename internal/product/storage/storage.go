@@ -45,4 +45,7 @@ type StorageProduct interface {
 
 	// Create is a method that creates a product
 	Create(p *Product) (err error)
+
+	// Update is a method that updates a product
+	Update(p *Product) (err error)
 }

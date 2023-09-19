@@ -1,26 +1,15 @@
 package storage
 
 import (
+	"app/internal/product/validator"
 	"fmt"
-	"regexp"
 )
 
-// NewStorageProductValidate returns a new StorageProductValidate
-type ConfigStorageProductValidate struct {
-	// st is the storage of products
-	St StorageProduct
-	RegexCodeValue string
-}
-
-func NewStorageProductValidate(cfg ConfigStorageProductValidate) *StorageProductValidate {
-	// default values
-	if cfg.RegexCodeValue == "" {
-		cfg.RegexCodeValue = `^[A-Z]{3}-[0-9]{3}$`
-	}
-
+// NewStorageProductValidate is a method that creates a new storage product validate
+func NewStorageProductValidate(st StorageProduct, vl validator.ValidatorProduct) *StorageProductValidate {
 	return &StorageProductValidate{
-		st: cfg.St,
-		regexCodeValue: regexp.MustCompile(cfg.RegexCodeValue),
+		st: st,
+		vl: vl,
 	}
 }
 
@@ -28,9 +17,8 @@ func NewStorageProductValidate(cfg ConfigStorageProductValidate) *StorageProduct
 type StorageProductValidate struct {
 	// st is the storage of products
 	st StorageProduct
-
-	// regexCodeValue is the regex pattern for code value
-	regexCodeValue *regexp.Regexp
+	// vl is the validator of products
+	vl validator.ValidatorProduct
 }
 
 
@@ -55,34 +43,43 @@ func (s *StorageProductValidate) Search(query Query) (p []*Product, err error) {
 // Create is a method that creates a product with validations
 func (s *StorageProductValidate) Create(p *Product) (err error) {
 	// validate
-	// -> required fields
-	if p.Name == "" {
-		err = fmt.Errorf("%w: name is empty", ErrStorageProductInvalid)
-		return
+	pv := validator.ProductAttributesValidator{
+		Name:        p.Name,
+		Quantity:    p.Quantity,
+		CodeValue:   p.CodeValue,
+		IsPublished: p.IsPublished,
+		Expiration:  p.Expiration,
+		Price:       p.Price,
 	}
-	if p.CodeValue == "" {
-		err = fmt.Errorf("%w: code value is empty", ErrStorageProductInvalid)
-		return
-	}
-	// -> quality fields
-	if p.Quantity < 0 {
-		err = fmt.Errorf("%w: quantity can't be negative", ErrStorageProductInvalid)
-		return
-	}
-	if !s.regexCodeValue.MatchString(p.CodeValue) {
-		err = fmt.Errorf("%w: code value format is invalid", ErrStorageProductInvalid)
-		return
-	}
-	if p.Expiration.Before(p.Expiration) {
-		err = fmt.Errorf("%w: expiration date can't be before created date", ErrStorageProductInvalid)
-		return
-	}
-	if p.Price < 0 {
-		err = fmt.Errorf("%w: price can't be negative", ErrStorageProductInvalid)
+	err = s.vl.Validate(&pv)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", ErrStorageProductInvalid, err.Error())
 		return
 	}
 
 	// save
 	err = s.st.Create(p)
+	return
+}
+
+// Update is a method that updates a product with validations
+func (s *StorageProductValidate) Update(p *Product) (err error) {
+	// validate
+	pv := validator.ProductAttributesValidator{
+		Name:        p.Name,
+		Quantity:    p.Quantity,
+		CodeValue:   p.CodeValue,
+		IsPublished: p.IsPublished,
+		Expiration:  p.Expiration,
+		Price:       p.Price,
+	}
+	err = s.vl.Validate(&pv)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", ErrStorageProductInvalid, err.Error())
+		return
+	}
+
+	// save
+	err = s.st.Update(p)
 	return
 }
