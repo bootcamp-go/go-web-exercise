@@ -1,7 +1,6 @@
 package application
 
 import (
-	"app/internal/auth"
 	"app/internal/product/handlers"
 	"app/internal/product/repository"
 	"app/internal/product/validator"
@@ -15,7 +14,6 @@ import (
 // ConfigAppMap is the configuration of the application
 type ConfigAppMap struct {
 	Addr  string
-	Token string
 	LayoutDate string
 }
 // NewApplicationMap creates a new application
@@ -23,15 +21,11 @@ func NewApplicationMap(cfg *ConfigAppMap) *ApplicationMap {
 	// default config
 	defaultCfg := &ConfigAppMap{
 		Addr:  ":8080",
-		Token: "",
 		LayoutDate: time.DateOnly,
 	}
 	if cfg != nil {
 		if cfg.Addr != "" {
 			defaultCfg.Addr = cfg.Addr
-		}
-		if cfg.Token != "" {
-			defaultCfg.Token = cfg.Token
 		}
 		if cfg.LayoutDate != "" {
 			defaultCfg.LayoutDate = cfg.LayoutDate
@@ -41,7 +35,6 @@ func NewApplicationMap(cfg *ConfigAppMap) *ApplicationMap {
 	return &ApplicationMap{
 		rt:    chi.NewRouter(),
 		addr:  defaultCfg.Addr,
-		token: defaultCfg.Token,
 		layoutDate: defaultCfg.LayoutDate,
 	}
 }
@@ -52,22 +45,17 @@ type ApplicationMap struct {
 	rt *chi.Mux
 	// addr is the address of the server
 	addr string
-	// token is the token of the server
-	token string
 	// layoutDate is the layout date of the server
 	layoutDate string
 }
 
 func (a *ApplicationMap) SetUp() (err error) {
 	// dependencies
-	// - authenticator
-	au := auth.NewAuthTokenBasic(a.token)
-
 	// - product
 	vl := validator.NewValidatorProductDefault("")
 	rp := repository.NewRepositoryProductMap(make(map[int]repository.ProductAttributesMap), 0, a.layoutDate)
 	rpVl := repository.NewRepositoryProductValidate(rp, vl)
-	hd := handlers.NewHandlerProducts(rpVl, au)
+	hd := handlers.NewHandlerProducts(rpVl)
 
 	// server
 	// - middlewares

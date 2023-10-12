@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"app/internal/auth"
 	"app/internal/product"
 	"app/internal/product/repository"
 	"app/platform/web/request"
@@ -15,16 +14,14 @@ import (
 )
 
 // NewHandlerProducts returns a new HandlerProducts
-func NewHandlerProducts(st repository.RepositoryProduct, au auth.AuthToken) *HandlerProducts {
-	return &HandlerProducts{st: st, au: au}
+func NewHandlerProducts(st repository.RepositoryProduct) *HandlerProducts {
+	return &HandlerProducts{st: st}
 }
 
 // HandlerProducts is a struct that contains the repository of products
 type HandlerProducts struct {
 	// st is the repository of products
 	st repository.RepositoryProduct
-	// au is the authenticator
-	au auth.AuthToken
 }
 
 type ProductJSON struct {
@@ -40,21 +37,13 @@ type ProductJSON struct {
 // Get is a method that returns all products
 func (h *HandlerProducts) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-
 		// request
 		// ...
 
 		// process
 		pr, err := h.st.Get()
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, "Internal error")
+			response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			return
 		}
 
@@ -70,19 +59,11 @@ func (h *HandlerProducts) Get() http.HandlerFunc {
 // GetByID is a method that returns a product by id
 func (h *HandlerProducts) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		// - id
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid id")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid id"})
 			return
 		}
 
@@ -92,9 +73,9 @@ func (h *HandlerProducts) GetByID() http.HandlerFunc {
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductNotFound):
-				response.Error(w, http.StatusNotFound, "Product not found")
+				response.JSON(w, http.StatusNotFound, map[string]any{"message": "Product not found"})
 			default:
-				response.Error(w, http.StatusInternalServerError, "Internal error")
+				response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			}
 			return
 		}
@@ -110,18 +91,10 @@ func (h *HandlerProducts) GetByID() http.HandlerFunc {
 // Search is a method that returns a product by id (via query params)
 func (h *HandlerProducts) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		id, err := strconv.Atoi(r.URL.Query().Get("id"))
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid id")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid id"})
 			return
 		}
 
@@ -130,7 +103,7 @@ func (h *HandlerProducts) Search() http.HandlerFunc {
 		query := repository.Query{Id: id}
 		pr, err := h.st.Search(query)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, "Internal error")
+			response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			return
 		}
 			
@@ -157,19 +130,11 @@ type RequestBodyProductCreate struct {
 }
 func (h *HandlerProducts) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		var reqBody RequestBodyProductCreate
-		err = request.JSON(r, &reqBody)
+		err := request.JSON(r, &reqBody)
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid request body")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid request body"})
 			return
 		}
 
@@ -177,7 +142,7 @@ func (h *HandlerProducts) Create() http.HandlerFunc {
 		// - deserialize
 		exp, err := time.Parse("2006-01-02", reqBody.Expiration)
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid date format. Must be yyyy-mm-dd")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid date format. Must be yyyy-mm-dd"})
 			return
 		}
 		// - save
@@ -186,9 +151,9 @@ func (h *HandlerProducts) Create() http.HandlerFunc {
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
-				response.Error(w, http.StatusUnprocessableEntity, "Invalid product")
+				response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid product"})
 			default:
-				response.Error(w, http.StatusInternalServerError, "Internal error")
+				response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			}
 			return
 		}
@@ -212,25 +177,17 @@ type RequestBodyProductUpdateOrCreate struct {
 }
 func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid id")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid id"})
 			return
 		}
 
 		var reqBody RequestBodyProductUpdateOrCreate
 		err = request.JSON(r, &reqBody)
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid request body")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid request body"})
 			return
 		}
 
@@ -238,7 +195,7 @@ func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 		// - deserialize
 		exp, err := time.Parse("2006-01-02", reqBody.Expiration)
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid date format. Must be yyyy-mm-dd")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid date format. Must be yyyy-mm-dd"})
 			return
 		}
 		pr := product.NewProduct(id, reqBody.Name, reqBody.Quantity, reqBody.CodeValue, reqBody.IsPublished, exp, reqBody.Price)
@@ -247,9 +204,9 @@ func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
-				response.Error(w, http.StatusUnprocessableEntity, "Invalid product")
+				response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid product"})
 			default:
-				response.Error(w, http.StatusInternalServerError, "Internal error")
+				response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			}
 			return
 		}
@@ -265,24 +222,16 @@ func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 // Update is a method that updates a product
 func (h *HandlerProducts) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid id")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid id"})
 			return
 		}
 		patch := make(map[string]any)
 		err = request.JSON(r, &patch)
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid request body")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid request body"})
 			return
 		}
 
@@ -291,11 +240,11 @@ func (h *HandlerProducts) Update() http.HandlerFunc {
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductNotFound):
-				response.Error(w, http.StatusNotFound, "Product not found")
+				response.JSON(w, http.StatusNotFound, map[string]any{"message": "Product not found"})
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
-				response.Error(w, http.StatusUnprocessableEntity, "Invalid product")
+				response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid product"})
 			default:
-				response.Error(w, http.StatusInternalServerError, "Internal error")
+				response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			}
 			return
 		}
@@ -311,18 +260,10 @@ func (h *HandlerProducts) Update() http.HandlerFunc {
 // Delete is a method that deletes a product by id
 func (h *HandlerProducts) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.Error(w, http.StatusBadRequest, "Invalid id")
+			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Invalid id"})
 			return
 		}
 
@@ -332,9 +273,9 @@ func (h *HandlerProducts) Delete() http.HandlerFunc {
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductNotFound):
-				response.Error(w, http.StatusNotFound, "Product not found")
+				response.JSON(w, http.StatusNotFound, map[string]any{"message": "Product not found"})
 			default:
-				response.Error(w, http.StatusInternalServerError, "Internal error")
+				response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "Internal error"})
 			}
 			return
 		}

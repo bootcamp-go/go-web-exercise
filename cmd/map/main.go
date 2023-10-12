@@ -14,7 +14,6 @@ func main() {
 	// - config
 	cfg := &application.ConfigAppMap{
 		Addr:  os.Getenv("SERVER_ADDR"),
-		Token: os.Getenv("API_TOKEN"),
 		LayoutDate: os.Getenv("LAYOUT_DATE"),
 	}
 	app := application.NewApplicationMap(cfg)
