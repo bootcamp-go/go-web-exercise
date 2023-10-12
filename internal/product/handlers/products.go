@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"app/internal/auth"
 	"app/internal/product"
 	"app/internal/product/repository"
 	"app/platform/web/request"
@@ -15,16 +14,14 @@ import (
 )
 
 // NewHandlerProducts returns a new HandlerProducts
-func NewHandlerProducts(st repository.RepositoryProduct, au auth.AuthToken) *HandlerProducts {
-	return &HandlerProducts{st: st, au: au}
+func NewHandlerProducts(st repository.RepositoryProduct) *HandlerProducts {
+	return &HandlerProducts{st: st}
 }
 
 // HandlerProducts is a struct that contains the repository of products
 type HandlerProducts struct {
 	// st is the repository of products
 	st repository.RepositoryProduct
-	// au is the authenticator
-	au auth.AuthToken
 }
 
 type ProductJSON struct {
@@ -40,14 +37,6 @@ type ProductJSON struct {
 // Get is a method that returns all products
 func (h *HandlerProducts) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-
 		// request
 		// ...
 
@@ -70,14 +59,6 @@ func (h *HandlerProducts) Get() http.HandlerFunc {
 // GetByID is a method that returns a product by id
 func (h *HandlerProducts) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		// - id
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -110,14 +91,6 @@ func (h *HandlerProducts) GetByID() http.HandlerFunc {
 // Search is a method that returns a product by id (via query params)
 func (h *HandlerProducts) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		id, err := strconv.Atoi(r.URL.Query().Get("id"))
 		if err != nil {
@@ -157,17 +130,9 @@ type RequestBodyProductCreate struct {
 }
 func (h *HandlerProducts) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		var reqBody RequestBodyProductCreate
-		err = request.JSON(r, &reqBody)
+		err := request.JSON(r, &reqBody)
 		if err != nil {
 			response.Error(w, http.StatusBadRequest, "Invalid request body")
 			return
@@ -212,14 +177,6 @@ type RequestBodyProductUpdateOrCreate struct {
 }
 func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
@@ -265,14 +222,6 @@ func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 // Update is a method that updates a product
 func (h *HandlerProducts) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
@@ -311,14 +260,6 @@ func (h *HandlerProducts) Update() http.HandlerFunc {
 // Delete is a method that deletes a product by id
 func (h *HandlerProducts) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// auth
-		token := r.Header.Get("Token")
-		err := h.au.Auth(token)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {

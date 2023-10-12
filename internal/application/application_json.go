@@ -2,10 +2,12 @@ package application
 
 import (
 	"app/internal/auth"
+	middlewareAuth "app/internal/auth/middleware"
 	"app/internal/product/handlers"
 	"app/internal/product/repository"
 	"app/internal/product/storage"
 	"app/internal/product/validator"
+	middlewareLog "app/platform/web/middleware"
 	"net/http"
 	"os"
 	"time"
@@ -74,8 +76,12 @@ type ApplicationJSON struct {
 
 func (a *ApplicationJSON) SetUp() (err error) {
 	// dependencies
+	// - logger
+	lgMd := middlewareLog.NewLogger()
+
 	// - authenticator
 	au := auth.NewAuthTokenBasic(a.token)
+	auMd := middlewareAuth.NewAuthenticator(au)
 
 	// - product
 	// -- ping
@@ -88,12 +94,14 @@ func (a *ApplicationJSON) SetUp() (err error) {
 	vl := validator.NewValidatorProductDefault("")
 	rp := repository.NewRepositoryProductStore(st, a.filePathLastId, a.layoutDate)
 	rpVl := repository.NewRepositoryProductValidate(rp, vl)
-	hd := handlers.NewHandlerProducts(rpVl, au)
+	hd := handlers.NewHandlerProducts(rpVl)
 
 	// server
 	// - middlewares
 	a.rt.Use(middleware.Logger)
 	a.rt.Use(middleware.Recoverer)
+	a.rt.Use(lgMd.Log)
+	a.rt.Use(auMd.Auth)
 
 	// - routes
 	a.rt.Route("/products", func(rt chi.Router) {
