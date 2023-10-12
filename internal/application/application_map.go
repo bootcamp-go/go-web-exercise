@@ -61,7 +61,7 @@ type ApplicationMap struct {
 func (a *ApplicationMap) SetUp() (err error) {
 	// dependencies
 	// - authenticator
-	au := auth.NewAuthTokenBasic("token")
+	au := auth.NewAuthTokenBasic(a.token)
 
 	// - product
 	vl := validator.NewValidatorProductDefault("")

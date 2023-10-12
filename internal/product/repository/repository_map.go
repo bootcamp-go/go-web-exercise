@@ -97,6 +97,9 @@ func (s *RepositoryProductMap) Create(p *product.Product) (err error) {
 	s.lastId++
 	s.db[s.lastId] = pr
 	
+	// last id
+	p.SetId(s.lastId)
+
 	return nil
 }
 
@@ -132,14 +135,14 @@ func (s *RepositoryProductMap) Update(id int, patch map[string]any) (p product.P
 	// patch
 	err = patcher.Patch(&patchAttributes, patch)
 	if err != nil {
-		err = fmt.Errorf("%w - %d", ErrRepositoryProductInvalid, id)
+		err = fmt.Errorf("%w. %s", ErrRepositoryProductInvalid, err.Error())
 		return
 	}
 
 	// serialization
 	fieldExpiration, err := time.Parse(s.layoutDate, patchAttributes.Expiration)
 	if err != nil {
-		err = fmt.Errorf("%w - %d", ErrRepositoryProductInvalid, id)
+		err = fmt.Errorf("%w. %s", ErrRepositoryProductInvalid, err.Error())
 		return
 	}
 	pr = ProductAttributesMap{

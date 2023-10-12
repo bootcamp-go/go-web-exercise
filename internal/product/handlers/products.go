@@ -7,6 +7,7 @@ import (
 	"app/platform/web/request"
 	"app/platform/web/response"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -312,6 +313,7 @@ func (h *HandlerProducts) Update() http.HandlerFunc {
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
 				code = http.StatusUnprocessableEntity
 				body = map[string]any{"message": "invalid product", "data": nil}
+				log.Println(err)
 			default:
 				code = http.StatusInternalServerError
 				body = map[string]any{"message": "internal error", "data": nil}

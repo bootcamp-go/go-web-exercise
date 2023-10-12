@@ -75,7 +75,7 @@ type ApplicationJSON struct {
 func (a *ApplicationJSON) SetUp() (err error) {
 	// dependencies
 	// - authenticator
-	au := auth.NewAuthTokenBasic("token")
+	au := auth.NewAuthTokenBasic(a.token)
 
 	// - product
 	// -- ping

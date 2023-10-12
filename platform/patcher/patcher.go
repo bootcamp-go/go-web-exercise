@@ -54,14 +54,52 @@ func Patch(ptr any, patch map[string]any) (err error) {
 		// get the patch value
 		patchValue := patch[key]
 
-		// check if the patch value is assignable to the field value
-		if !reflect.TypeOf(patchValue).AssignableTo(fieldType.Type) {
+		// check assignable case
+		assignableCase := checkCase(patchValue, fieldValue.Interface())
+		if assignableCase == NotAssignable {
 			err = fmt.Errorf("%w - fieldName %s - fieldTag %s", ErrPatcherInvalidType, fieldName, fieldTag)
 			return
 		}
 
-		// set the field value
-		fieldValue.Set(reflect.ValueOf(patchValue))
+		// handle the assignable case
+		switch assignableCase {
+		case AssignableJSON:
+			// convert the patch value to int
+			patchValue = int(patchValue.(float64))
+			fieldValue.Set(reflect.ValueOf(patchValue))
+		default:
+			fieldValue.Set(reflect.ValueOf(patchValue))
+		}
+	}
+
+	return
+}
+
+// Assignament is a type that represents the assignable case
+type Assignament int
+const (
+	NotAssignable Assignament = iota
+	Assignable
+	AssignableJSON
+	// ...
+)
+
+// checkCase is a function that checks the assignable case
+// - By default, the assignable case is NotAssignable
+func checkCase(patchValue any, floatValue any) (a Assignament) {
+	// check if the patch value is assignable to the field value
+	if reflect.TypeOf(patchValue).AssignableTo(reflect.TypeOf(floatValue)) {
+		a = Assignable
+	}
+
+	// check if is assignable by JSON
+	// check if field type is int and patch value is float64
+	if reflect.TypeOf(patchValue).Kind() == reflect.Float64 && reflect.TypeOf(floatValue).Kind() == reflect.Int {
+		// check if the patch value does not have decimals
+		if patchValue.(float64) == float64(int(patchValue.(float64))) {
+			// set the assignable case
+			a = AssignableJSON
+		}
 	}
 
 	return

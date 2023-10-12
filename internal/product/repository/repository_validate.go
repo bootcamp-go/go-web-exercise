@@ -3,7 +3,6 @@ package repository
 import (
 	"app/internal/product"
 	"app/internal/product/validator"
-	"app/platform/patcher"
 	"fmt"
 )
 
@@ -66,20 +65,6 @@ func (s *RepositoryProductValidate) Create(p *product.Product) (err error) {
 
 // Update is a method that updates a product with validations
 func (s *RepositoryProductValidate) Update(id int, patch map[string]any) (p product.Product, err error) {
-	// validate
-	var pv validator.ProductAttributesValidator
-	err = patcher.Patch(&pv, patch)
-	if err != nil {
-		err = fmt.Errorf("%w. %s", ErrRepositoryProductInvalid, err.Error())
-		return
-	}
-
-	err = s.vl.Validate(&pv)
-	if err != nil {
-		err = fmt.Errorf("%w. %s", ErrRepositoryProductInvalid, err.Error())
-		return
-	}
-
 	// update
 	p, err = s.st.Update(id, patch)
 	return
