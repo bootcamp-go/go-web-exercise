@@ -7,7 +7,6 @@ import (
 	"app/platform/web/request"
 	"app/platform/web/response"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -45,7 +44,7 @@ func (h *HandlerProducts) Get() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
@@ -55,7 +54,7 @@ func (h *HandlerProducts) Get() http.HandlerFunc {
 		// process
 		pr, err := h.st.Get()
 		if err != nil {
-			response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "internal error", "data": nil})
+			response.Error(w, http.StatusInternalServerError, "Internal error")
 			return
 		}
 
@@ -75,7 +74,7 @@ func (h *HandlerProducts) GetByID() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 		
@@ -83,7 +82,7 @@ func (h *HandlerProducts) GetByID() http.HandlerFunc {
 		// - id
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid id", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid id")
 			return
 		}
 
@@ -91,17 +90,12 @@ func (h *HandlerProducts) GetByID() http.HandlerFunc {
 		// - get product
 		pr, err := h.st.GetByID(id)
 		if err != nil {
-			var code int; var body map[string]any
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductNotFound):
-				code = http.StatusNotFound
-				body = map[string]any{"message": "product not found", "data": nil}
+				response.Error(w, http.StatusNotFound, "Product not found")
 			default:
-				code = http.StatusInternalServerError
-				body = map[string]any{"message": "internal error", "data": nil}
+				response.Error(w, http.StatusInternalServerError, "Internal error")
 			}
-
-			response.JSON(w, code, body)
 			return
 		}
 
@@ -120,14 +114,14 @@ func (h *HandlerProducts) Search() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 		
 		// request
 		id, err := strconv.Atoi(r.URL.Query().Get("id"))
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid id", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid id")
 			return
 		}
 
@@ -136,7 +130,7 @@ func (h *HandlerProducts) Search() http.HandlerFunc {
 		query := repository.Query{Id: id}
 		pr, err := h.st.Search(query)
 		if err != nil {
-			response.JSON(w, http.StatusInternalServerError, map[string]any{"message": "internal error", "data": nil})
+			response.Error(w, http.StatusInternalServerError, "Internal error")
 			return
 		}
 			
@@ -167,7 +161,7 @@ func (h *HandlerProducts) Create() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 		
@@ -175,7 +169,7 @@ func (h *HandlerProducts) Create() http.HandlerFunc {
 		var reqBody RequestBodyProductCreate
 		err = request.JSON(r, &reqBody)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid request body", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
@@ -183,24 +177,19 @@ func (h *HandlerProducts) Create() http.HandlerFunc {
 		// - deserialize
 		exp, err := time.Parse("2006-01-02", reqBody.Expiration)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid date format. Must be yyyy-mm-dd", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid date format. Must be yyyy-mm-dd")
 			return
 		}
 		// - save
 		pr := product.NewProduct(0, reqBody.Name, reqBody.Quantity, reqBody.CodeValue, reqBody.IsPublished, exp, reqBody.Price)
 		err = h.st.Create(pr)
 		if err != nil {
-			var code int; var body map[string]any
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
-				code = http.StatusUnprocessableEntity
-				body = map[string]any{"message": "invalid product", "data": nil}
+				response.Error(w, http.StatusUnprocessableEntity, "Invalid product")
 			default:
-				code = http.StatusInternalServerError
-				body = map[string]any{"message": "internal error", "data": nil}
+				response.Error(w, http.StatusInternalServerError, "Internal error")
 			}
-
-			response.JSON(w, code, body)
 			return
 		}
 
@@ -227,21 +216,21 @@ func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 		
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid id", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid id")
 			return
 		}
 
 		var reqBody RequestBodyProductUpdateOrCreate
 		err = request.JSON(r, &reqBody)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid request body", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
@@ -249,24 +238,19 @@ func (h *HandlerProducts) UpdateOrCreate() http.HandlerFunc {
 		// - deserialize
 		exp, err := time.Parse("2006-01-02", reqBody.Expiration)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid date format. Must be yyyy-mm-dd", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid date format. Must be yyyy-mm-dd")
 			return
 		}
 		pr := product.NewProduct(id, reqBody.Name, reqBody.Quantity, reqBody.CodeValue, reqBody.IsPublished, exp, reqBody.Price)
 		// - update or create
 		err = h.st.UpdateOrCreate(pr)
 		if err != nil {
-			var code int; var body map[string]any
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
-				code = http.StatusUnprocessableEntity
-				body = map[string]any{"message": "invalid product", "data": nil}
+				response.Error(w, http.StatusUnprocessableEntity, "Invalid product")
 			default:
-				code = http.StatusInternalServerError
-				body = map[string]any{"message": "internal error", "data": nil}
+				response.Error(w, http.StatusInternalServerError, "Internal error")
 			}
-
-			response.JSON(w, code, body)
 			return
 		}
 
@@ -285,41 +269,34 @@ func (h *HandlerProducts) Update() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid id", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid id")
 			return
 		}
 		patch := make(map[string]any)
 		err = request.JSON(r, &patch)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid request body", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
 		// process
 		pr, err := h.st.Update(id, patch)
 		if err != nil {
-			var code int; var body map[string]any
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductNotFound):
-				code = http.StatusNotFound
-				body = map[string]any{"message": "product not found", "data": nil}
+				response.Error(w, http.StatusNotFound, "Product not found")
 			case errors.Is(err, repository.ErrRepositoryProductInvalid):
-				code = http.StatusUnprocessableEntity
-				body = map[string]any{"message": "invalid product", "data": nil}
-				log.Println(err)
+				response.Error(w, http.StatusUnprocessableEntity, "Invalid product")
 			default:
-				code = http.StatusInternalServerError
-				body = map[string]any{"message": "internal error", "data": nil}
+				response.Error(w, http.StatusInternalServerError, "Internal error")
 			}
-
-			response.JSON(w, code, body)
 			return
 		}
 
@@ -338,14 +315,14 @@ func (h *HandlerProducts) Delete() http.HandlerFunc {
 		token := r.Header.Get("Token")
 		err := h.au.Auth(token)
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "Unauthorized", "data": nil})
+			response.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 		
 		// request
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			response.JSON(w, http.StatusBadRequest, map[string]any{"message": "invalid id", "data": nil})
+			response.Error(w, http.StatusBadRequest, "Invalid id")
 			return
 		}
 
@@ -353,17 +330,12 @@ func (h *HandlerProducts) Delete() http.HandlerFunc {
 		// - delete
 		err = h.st.Delete(id)
 		if err != nil {
-			var code int; var body map[string]any
 			switch {
 			case errors.Is(err, repository.ErrRepositoryProductNotFound):
-				code = http.StatusNotFound
-				body = map[string]any{"message": "product not found", "data": nil}
+				response.Error(w, http.StatusNotFound, "Product not found")
 			default:
-				code = http.StatusInternalServerError
-				body = map[string]any{"message": "internal error", "data": nil}
+				response.Error(w, http.StatusInternalServerError, "Internal error")
 			}
-
-			response.JSON(w, code, body)
 			return
 		}
 
