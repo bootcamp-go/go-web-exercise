@@ -1,6 +1,7 @@
-package response
+package response_test
 
 import (
+	"app/platform/web/response"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +19,7 @@ func TestText(t *testing.T) {
 		rr := httptest.NewRecorder()
 		code := http.StatusOK
 		body := "pong"
-		Text(rr, code, body)
+		response.Text(rr, code, body)
 
 		// assert
 		expectedHeader := http.Header{"Content-Type": []string{"text/plain; charset=utf-8"}}
@@ -37,7 +38,7 @@ func TestText(t *testing.T) {
 		rr := httptest.NewRecorder()
 		code := http.StatusOK
 		body := ""
-		Text(rr, code, body)
+		response.Text(rr, code, body)
 
 		// assert
 		expectedHeader := http.Header{"Content-Type": []string{"text/plain; charset=utf-8"}}
@@ -59,7 +60,7 @@ func TestJSON(t *testing.T) {
 		rr := httptest.NewRecorder()
 		code := http.StatusOK
 		body := struct{Message string}{Message: "ok"}
-		JSON(rr, code, body)
+		response.JSON(rr, code, body)
 
 		// assert
 		expectedHeader := http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
@@ -78,7 +79,7 @@ func TestJSON(t *testing.T) {
 		rr := httptest.NewRecorder()
 		code := http.StatusBadRequest
 		body := struct{Message string}{Message: "bad request"}
-		JSON(rr, code, body)
+		response.JSON(rr, code, body)
 
 		// assert
 		expectedHeader := http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
@@ -97,7 +98,7 @@ func TestJSON(t *testing.T) {
 		rr := httptest.NewRecorder()
 		code := http.StatusNoContent
 		body := any(nil)
-		JSON(rr, code, body)
+		response.JSON(rr, code, body)
 
 		// assert
 		expectedHeader := http.Header{}
@@ -116,7 +117,7 @@ func TestJSON(t *testing.T) {
 		rr := httptest.NewRecorder()
 		code := http.StatusOK
 		body := make(chan int)
-		JSON(rr, code, body)
+		response.JSON(rr, code, body)
 
 		// assert
 		expectedHeader := http.Header{}
