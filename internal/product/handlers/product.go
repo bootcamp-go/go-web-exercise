@@ -61,7 +61,7 @@ func (h *HandlerProducts) Get() http.HandlerFunc {
 		// response
 		data := make([]ProductJSON, 0, len(pr))
 		for _, v := range pr {
-			data = append(data, ProductJSON{Id: v.Id(), Name: v.Name(), Quantity: v.Quantity(), CodeValue: v.CodeValue(), IsPublished: v.IsPublished(), Expiration: v.Expiration().Format("2006-01-02"), Price: v.Price()})
+			data = append(data, ProductJSON{Id: v.Id(), Name: v.Name(), Quantity: v.Quantity(), CodeValue: v.CodeValue(), IsPublished: v.IsPublished(), Expiration: v.Expiration().Format(time.DateOnly), Price: v.Price()})
 		}
 		response.JSON(w, http.StatusOK, map[string]any{"message": "products", "data": data})
 	}

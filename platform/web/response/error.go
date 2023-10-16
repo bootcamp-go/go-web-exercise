@@ -32,7 +32,7 @@ func Error(w http.ResponseWriter, statusCode int, message string) {
 
 	// write response
 	w.WriteHeader(defaultStatusCode)
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Write(bytes)
 }
 
